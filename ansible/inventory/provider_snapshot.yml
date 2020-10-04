@@ -1,0 +1,30 @@
+all:
+  children:
+    NEXTCLOUD_SERVER:
+      hosts:
+        168.119.125.249:
+          public_ip_address: 168.119.125.249
+all:
+  children:
+    NEXTCLOUD_SERVER:
+      hosts:
+        168.119.125.249:
+          public_ip_address: 168.119.125.249
+all:
+  children:
+    NEXTCLOUD_SERVER:
+      hosts:
+        168.119.125.249:
+          public_ip_address: 168.119.125.249
+all:
+  children:
+    NEXTCLOUD_SERVER:
+      hosts:
+        168.119.125.249:
+          public_ip_address: 168.119.125.249
+all:
+  children:
+    NEXTCLOUD_SERVER:
+      hosts:
+        168.119.125.249:
+          public_ip_address: 168.119.125.249

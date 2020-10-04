@@ -1,0 +1,8 @@
+protocol: https
+app_container: nextcloud_app
+
+# real data is encrypted in secrets.yml
+# domain_name: exampe.com
+# email_address: x@example.com
+# dbpassword: password123
+# redis_password: password789

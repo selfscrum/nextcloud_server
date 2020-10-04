@@ -1,0 +1,108 @@
+#
+# 001_init_nextcloud/tasks/main.yml
+#
+---
+- name: Get system parameters
+  include_vars: 
+    file: "{{system_cfg}}"
+    name: system
+
+- name: Install aptitude using apt
+  apt: name=aptitude state=latest update_cache=yes force_apt_get=yes
+
+- name: Install required system packages
+  apt: name={{ item }} state=latest update_cache=yes
+  loop: [ 'apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common', 'python3-pip', 'virtualenv', 'python3-setuptools']
+
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu bionic stable
+    state: present
+
+- name: Update apt and install docker-ce
+  apt: update_cache=yes name=docker-ce state=latest
+
+- name: Update apt and install docker-compose
+  apt: update_cache=yes name=docker-compose state=latest
+
+- name: Add ubuntu user to docker group
+  user:
+    name: ubuntu
+    groups: docker
+    append: yes
+
+- name: Create nextcloud home directory
+  file:
+    path: /home/ubuntu/nextcloud
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: 0750
+
+- name: Copy nextcloud configuration files
+  copy:
+    src: ./files/
+    dest: /home/ubuntu/nextcloud
+    owner: ubuntu
+    group: ubuntu
+
+- name: Copy docker-compose configuration
+  template:
+    src: docker-compose.yml.j2
+    dest: /home/ubuntu/nextcloud/docker-compose.yml
+    owner: ubuntu
+    group: ubuntu
+  
+- name: Copy db.env
+  template:
+    src: db.env.j2
+    dest: /home/ubuntu/nextcloud/db.env
+    owner: ubuntu
+    group: ubuntu
+
+- name: Copy redis-server.conf
+  template:
+    src: redis-server.conf.j2
+    dest: /home/ubuntu/nextcloud/redis/redis-server.conf
+    owner: ubuntu
+    group: ubuntu
+    mode: 0664
+
+- name: Run nextcloud
+  vars:
+    - ansible_python_interpreter: /usr/bin/python
+  docker_compose:
+    project_src: /home/ubuntu/nextcloud
+
+# We need some hacks here since the original config is not completely set up.
+# External applications like mobile or windows apps cannot register if the protocol is
+# not set properly to https. 
+# This sequence modifies config.php and restarts the app container
+#
+- name: Complete app configuration - switch external url to https
+  lineinfile:
+    path: /var/lib/docker/volumes/nextcloud_nextcloud/_data/config/config.php
+    regexp: "^.*'overwrite.cli.url'"
+    line: "  'overwrite.cli.url' => '{{protocol}}://{{domain_name}}',"
+
+- name: Complete app configuration - set overwriteprotocol to https
+  lineinfile:
+    path: /var/lib/docker/volumes/nextcloud_nextcloud/_data/config/config.php
+    regexp: "^.*'overwriteprotocol'"
+    line: "  'overwriteprotocol' => '{{protocol}}',"
+    insertafter: "^.*'overwrite.cli.url'"
+
+- name: Complete app configuration - set overwritehost to domain
+  lineinfile:
+    path: /var/lib/docker/volumes/nextcloud_nextcloud/_data/config/config.php
+    regexp: "^.*'overwritehost'"
+    line: "  'overwritehost' => '{{domain_name}}',"
+    insertafter: "^.*'overwriteprotocol'"
+  
+- name: Restart app container
+  shell: docker restart `docker ps | grep "{{app_container}}" | awk -F " " '{print $1}'`

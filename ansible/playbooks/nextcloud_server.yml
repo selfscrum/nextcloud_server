@@ -1,0 +1,15 @@
+#
+#
+# Playbook to configure the infrastructure parts for a terraform component
+#
+
+---
+- hosts: NEXTCLOUD_SERVER
+  gather_facts: no
+  ignore_errors: yes
+  become: yes
+  become_user: root
+  vars:
+    - ansible_python_interpreter: /usr/bin/python3
+  roles:
+    - 001_init_nextcloud_server
